@@ -1,0 +1,21 @@
+#### Quantifying transcript counts from reads provided by Mardanov et al. 2020 ####
+
+## I manually downloaded the .fastq read files for each of the 9 samples
+
+# Downloading the _Saccharomyces cerevisiae_ reference transcriptome. This is not the same one that the authors used, please see methods for justification
+
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/146/045/GCF_000146045.2_R64/GCF_000146045.2_R64_rna.fna.gz
+
+# Building index with salmon v1.10.3
+# -k 31 is the k-mer length recommended by the authors of the salmon vignette
+
+conda activate salmon
+salmon index -t GCF_000146045.2_R64_rna.fna.gz -i ref_index -k 31
+
+# Quantifying the the transcript counts of each of the 9 samples
+# The gcBias flag is recommended by the authors of the DEseq2 vignette for analyses with salmon
+# -p is for specifying number of threads
+
+for file in *.fastq.gz; do
+salmon quant -i ref_index -l A -r $file -p 4 --gcBias --validateMappings -o ${file}_quant;
+done
