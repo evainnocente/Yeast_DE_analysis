@@ -1,0 +1,518 @@
+---
+title: "DE and GSEA analysis"
+output: html_notebook
+---
+
+Loading required packages
+
+```{r}
+# General
+library(ggplot2)
+library(dplyr)
+
+# For DE analysis
+library(tximport)
+library(txdbmaker)
+library(DESeq2)
+library(vsn)
+library("pheatmap")
+
+# For GSEA
+library(clusterProfiler)
+library(enrichplot)
+library("org.Sc.sgd.db")
+```
+
+Creating text file of metadata:
+
+```{r}
+# Creatying vectors of necessary metadata and merging into a dataframe
+samplenames <- c("SRR10551657", "SRR10551658", "SRR10551659", 
+                 "SRR10551660", "SRR10551661", "SRR10551662",
+                 "SRR10551663", "SRR10551664", "SRR10551665")
+
+level <- c("Mature", "Mature", "Mature", "Thin", "Thin", "Thin", "Early", "Early", "Early")
+
+sampleid <- c("ILR31", "IL30", "IL29", "IL25", "IL24", "IL23", "IL22", "IL21", "IL21")
+
+sampledata <- as.data.frame(cbind(samplenames,level, sampleid))
+
+# Write out to text file
+write.table(sampledata, "../data/sampledata.txt", quote = F)
+```
+
+
+Importing the count data from salmon:
+
+```{r}
+# Read in metadata
+samples <- read.table(file.path("../data/", "sampledata.txt"), header = T)
+
+# Read in the quantified counts from a folder called "salmon"
+files <- file.path("../data/", "salmon", paste0(samples$samplename, ".fastq.gz_quant"), "quant.sf")
+files # Inspect
+
+# Make sure everything exists
+all(file.exists(files))
+```
+
+Making the database of gene names to map transcripts to genes. I used the yeast reference genome annotations for this (GCF_000146045.2).
+
+```{r}
+# Make database
+txdb <- makeTxDbFromGFF("../data/sc_ref_gff/ncbi_dataset/data/GCF_000146045.2/genomic.gff")
+
+# Specify key type
+k <-keys(txdb, keytype = "TXNAME")
+
+# Create the mapping
+tx2gene <- AnnotationDbi::select(txdb, k, "GENEID", "TXNAME")
+
+# Read in count data and map transcripts to genes
+txi <- tximport(files, type = "salmon", tx2gene = tx2gene)
+
+# Check if it worked
+head(txi)
+```
+
+Differential gene expression analysis
+
+Creating a DESeqDataSet from the txi object and the sample name information in samples. I specify level (i.e., stage of velum formation) as the condition we are testing.
+
+```{r}
+ddsTxi <- DESeqDataSetFromTximport(txi, colData = samples, design = ~ level)
+```
+
+Prefiltering for genes with low counts as recommended by DEseq2 vignette.
+
+```{r}
+smallestGroupSize <- 3 # Group of samples, i.e. there are three samples in each level
+keep <- rowSums(counts(ddsTxi) >= 10) >= smallestGroupSize
+dds <- ddsTxi[keep,]
+```
+
+Differential expression analysis. Creating a DEseq2 dataset object, which performs the analysis, and inspecting results
+
+```{r}
+dds <- DESeq(dds)
+res <- results(dds)
+res # Inspect results
+resultsNames(dds) # Shows which contrasts are included. Thin vs. Mature is missing, we will fix this later
+
+# Look at results for specific contrasts
+mature_vs_thin <- results(dds, contrast=c("level","Mature","Thin"))
+mature_vs_early <- results(dds, contrast=c("level","Mature","Early"))
+thin_vs_early <- results(dds, contrast=c("level","Thin","Early"))
+```
+
+Applying log-fold shrinkage for easier visualisation.
+
+```{r}
+# This tells us the number of the coefficient we'll refer to the contrast by
+resultsNames(dds) 
+
+mature_vs_early_shrink <- lfcShrink(dds, coef=2, type="apeglm")
+
+thin_vs_early_shrink <- lfcShrink(dds, coef=3, type="apeglm")
+
+# To get thin vs mature, because DEseq2 thinks early is the reference
+dds$level <- relevel(dds$level, ref = "Mature") 
+
+#Run DESeq again
+dds2 <- DESeq(dds)
+ 
+resultsNames(dds2) # Now we have this contrast
+
+thin_vs_mature_shrink <- lfcShrink(dds2, coef=3, type="apeglm")
+
+```
+
+Taking a look at the top DE genes based on the p-adjusted value.
+
+```{r}
+# Thin vs. mature
+thin_vs_mature_shrink[order(thin_vs_mature_shrink$padj),] # Ordered by smallest adjusted p-value
+summary(thin_vs_mature_shrink) # 1396 genes had a positive LFC, 1408 had a negative
+sum(thin_vs_mature_shrink$padj < 0.05, na.rm=TRUE) # 2425 significantly DE
+
+# Mature vs. early
+mature_vs_early_shrink[order(mature_vs_early_shrink$padj),]
+summary(mature_vs_early_shrink) # 1724 genes with LFC over 0, 1649 lower than 0
+sum(mature_vs_early_shrink$padj < 0.05, na.rm=TRUE) # 3024 significantly DE
+
+# Thin vs. early
+thin_vs_early_shrink[order(thin_vs_early_shrink$padj),]
+summary(thin_vs_early_shrink) # 1346 LFC >0, 1269 LFC <0
+sum(thin_vs_early_shrink$padj < 0.05, na.rm=TRUE) # 2273 signif DE
+
+# Filteirng results objects to retain significant results only, then summarising how many genes were up or downregulated
+sig_t_vs_m <- thin_vs_mature_shrink[which(thin_vs_mature_shrink$padj < 0.05), ]
+summary(sig_t_vs_m) # 1177 up, 1248 down
+
+sig_m_vs_e <- mature_vs_early_shrink[which(mature_vs_early_shrink$padj < 0.05), ]
+summary(sig_m_vs_e) # 1561 up, 1463 down
+
+sig_t_vs_e <-thin_vs_early_shrink[which(thin_vs_early_shrink$padj < 0.05), ]
+summary(sig_t_vs_e) # 1158 up, 1115 down
+```
+
+Quick MA plots to visualise results. The default alpha cutoff value is 0.1 (the blue points). Triangles have a LFC too large for the plot.
+
+```{r}
+
+plotMA(res, ylim=c(-10,10)) # for all
+
+# For each specific contrast
+plotMA(thin_vs_mature_shrink, ylim=c(-10,10))
+plotMA(mature_vs_early_shrink, ylim=c(-10,10))
+plotMA(thin_vs_early_shrink, ylim=c(-10,10)) 
+```
+
+Plotting volcano plots for each contrast. Fo ease of visualisation, I exclude genes with LFC less than 1 and include only significant genes.
+
+```{r}
+# Thin vs. Mature, Fig. 1 
+res_thin_vs_mature_shrink <- as.data.frame(thin_vs_mature_shrink)
+
+res_thin_vs_mature_shrink$gene <- rownames(res_thin_vs_mature_shrink)
+
+res_thin_vs_mature_shrink$significant <- ifelse(res_thin_vs_mature_shrink$padj < 0.05 & abs(res_thin_vs_mature_shrink$log2FoldChange) > 1, ifelse(res_thin_vs_mature_shrink$log2FoldChange > 0, "Up", "Down"), "Not Sig")
+
+res_thin_vs_mature_shrink <- na.omit(res_thin_vs_mature_shrink)
+
+ggplot(res_thin_vs_mature_shrink, aes(x = log2FoldChange, y = -log10(padj), color = significant)) +
+geom_point() + scale_color_manual(values = c("Down" = "blue", "Not Sig" = "gray", "Up" = "red"))+labs(x = "Log2 Fold Change", y = "-Log10 p-value",title = "Thin vs Mature") +theme(legend.position = "right")
+
+
+# Mature vs. Early, Fig. 2 
+res_mature_vs_early_shrink <- as.data.frame(mature_vs_early_shrink)
+
+res_mature_vs_early_shrink$gene <- rownames(res_mature_vs_early_shrink)
+
+res_mature_vs_early_shrink$significant <- ifelse(res_mature_vs_early_shrink$padj < 0.05 & abs(res_mature_vs_early_shrink$log2FoldChange) > 1, ifelse(res_mature_vs_early_shrink$log2FoldChange > 0, "Up", "Down"), "Not Sig")
+
+res_mature_vs_early_shrink <- na.omit(res_mature_vs_early_shrink)
+
+ggplot(res_mature_vs_early_shrink, aes(x = log2FoldChange, y = -log10(padj), color = significant)) +
+geom_point() + scale_color_manual(values = c("Down" = "blue", "Not Sig" = "gray", "Up" = "red"))+labs(x = "Log2 Fold Change", y = "-Log10 p-value",title = "Mature vs Early") +theme(legend.position = "right")
+
+
+# Thin vs. Early, Fig 3. 
+
+res_thin_vs_early_shrink <- as.data.frame(thin_vs_early_shrink)
+
+res_thin_vs_early_shrink$gene <- rownames(res_thin_vs_early_shrink)
+
+res_thin_vs_early_shrink$significant <- ifelse(res_thin_vs_early_shrink$padj < 0.05 & abs(res_thin_vs_early_shrink$log2FoldChange) > 1, ifelse(res_thin_vs_early_shrink$log2FoldChange > 0, "Up", "Down"), "Not Sig")
+
+res_thin_vs_early_shrink <- na.omit(res_thin_vs_early_shrink)
+
+ggplot(res_thin_vs_early_shrink, aes(x = log2FoldChange, y = -log10(padj), color = significant)) +
+geom_point() + scale_color_manual(values = c("Down" = "blue", "Not Sig" = "gray", "Up" = "red"))+labs(x = "Log2 Fold Change", y = "-Log10 p-value",title = "Thin vs Early") +theme(legend.position = "right")
+
+## They weirdly look the same
+```
+
+Applying the variance stabilising transformation, check variance, then plot heatmap.
+
+```{r}
+vsd <- vst(dds, blind=T) # Setting blind to true
+
+head(assay(vsd), 10) # Check the transformed values
+
+meanSdPlot(assay(vsd)) # Plots variance, seems stable
+
+# Select only the top 20 most highly expressed genes
+select <- order(rowMeans(counts(dds,normalized=T)), decreasing=T)[1:20]
+df <- data.frame(Level = colData(dds)$level) # For annotation
+
+# Plotting figure 5
+pheatmap(assay(vsd)[select,], cluster_rows=F, show_rownames=T,
+         cluster_cols=F, annotation_col=df) # For all
+
+```
+
+Plot PCA to visualise overall structure of the data.
+
+```{r}
+# Using transformed data
+plotPCA(vsd, intgroup="level") # Fig. 4
+
+# Dispersion plots
+plotDispEsts(dds)
+```
+
+Writing the full output of all genes for each contrast to .csv files.
+
+
+```{r}
+write.csv(res_thin_vs_early_shrink, file="../data/results/thin_vs_early_shrink_results.csv")
+write.csv(res_mature_vs_early_shrink, file="../data/results/mature_vs_early_shrink_results.csv")
+write.csv(res_thin_vs_mature_shrink, file="../data/results/thin_vs_mature_shrink_results.csv")
+```
+
+GO term Gene Set Enrichment Analysis
+
+First reading in the data.
+
+```{r}
+t_vs_m <- read.csv("../data/results/thin_vs_mature_shrink_results.csv", header=T)
+m_vs_e <- read.csv("../data/results/mature_vs_early_shrink_results.csv", header=T)
+t_vs_e <- read.csv("../data/results/thin_vs_early_shrink_results.csv", header=T)
+```
+
+For thin vs. mature:
+
+```{r}
+# Extract log2 fold change 
+t_vs_m_lfc <- t_vs_m$log2FoldChange
+
+# Name the vector with the gene names
+names(t_vs_m_lfc) <- t_vs_m$X
+
+# Get rid of NAs 
+t_vs_m_genes<-na.omit(t_vs_m_lfc)
+
+# Sort the list in decreasing order for clusterProfiler.
+t_vs_m_genes <- sort(t_vs_m_genes, decreasing = T)
+
+# GSEA
+
+# We have GENENAME annotations
+gse_t_vs_m <- gseGO(geneList=t_vs_m_genes, 
+             ont ="ALL", 
+             keyType = "GENENAME", 
+             # nPerm = 10000, # Not needed
+             minGSSize = 2, # Min genes in set
+             maxGSSize = 1000, # max genes in set
+             pvalueCutoff = 0.05, 
+             verbose = TRUE, 
+             OrgDb = org.Sc.sgd.db, 
+             pAdjustMethod = "BH") # explore this? 
+
+# Plot 
+
+# Dot plot
+require(DOSE)
+dotplot(gse_t_vs_m, showCategory=10, split=".sign") + facet_grid(.~.sign)+ theme(axis.text.y=element_text(size=4))
+
+# Ridge plot
+ridgeplot(gse_t_vs_m) + labs(x = "enrichment distribution") + theme(axis.text.y=element_text(size=4))
+
+# Results
+gse_t_vs_m_results <- as.data.frame(gse_t_vs_m)
+
+# Order by adjusted p value and extract top value
+head((gse_t_vs_m_results[order(gse_t_vs_m_results$p.adjust),]), n=1)
+
+```
+
+For Mature vs. Early:
+
+```{r}
+# Extract log2 fold change 
+m_vs_e_lfc <- m_vs_e$log2FoldChange
+
+# Name the vector with the gene names
+names(m_vs_e_lfc) <- m_vs_e$X
+
+# omit any NA values 
+m_vs_e_genes<-na.omit(m_vs_e_lfc)
+
+# Sort the list in decreasing order for clusterProfiler.
+m_vs_e_genes <- sort(m_vs_e_genes, decreasing = T)
+
+# GSEA
+gse_m_vs_e <- gseGO(geneList=m_vs_e_genes, 
+             ont ="ALL", 
+             keyType = "GENENAME", 
+             #nPerm = 10000, # remove?
+             minGSSize = 2, # Min genes in set
+             maxGSSize = 1000, # max genes in set
+             pvalueCutoff = 0.05, 
+             verbose = TRUE, 
+             OrgDb = org.Sc.sgd.db, 
+             pAdjustMethod = "BH") # explore this? 
+
+# Plot 
+require(DOSE)
+dotplot(gse_m_vs_e, showCategory=10, split=".sign") + facet_grid(.~.sign)+ theme(axis.text.y=element_text(size=4))
+ridgeplot(gse_m_vs_e) + labs(x = "enrichment distribution") + theme(axis.text.y=element_text(size=4))
+
+# Results
+gse_m_vs_e_results <- as.data.frame(gse_m_vs_e)
+
+# Order by adjusted p value and extract top value
+head((gse_m_vs_e_results[order(gse_m_vs_e_results$p.adjust),]), n=1)
+```
+
+
+Thin vs. Early:
+
+```{r}
+# Extract log2 fold change 
+t_vs_e_lfc <- t_vs_e$log2FoldChange
+
+# name the vector with gene names
+names(t_vs_e_lfc) <- t_vs_e$X
+
+# omit any NA values 
+t_vs_e_genes<-na.omit(t_vs_e_lfc)
+
+# sort the list in decreasing order for clusterProfiler
+t_vs_e_genes <- sort(t_vs_e_genes, decreasing = T)
+
+# GSEA
+gse_t_vs_e <- gseGO(geneList=t_vs_e_genes, 
+             ont ="ALL", 
+             keyType = "GENENAME", 
+             #nPerm = 10000, # remove?
+             minGSSize = 2, # Min genes in set
+             maxGSSize = 1000, # max genes in set
+             pvalueCutoff = 0.05, 
+             verbose = TRUE, 
+             OrgDb = org.Sc.sgd.db, 
+             pAdjustMethod = "BH") # explore this? 
+
+# Plot 
+require(DOSE)
+dotplot(gse_t_vs_e, showCategory=10, split=".sign") + facet_grid(.~.sign)+ theme(axis.text.y=element_text(size=4))
+ridgeplot(gse_t_vs_e) + labs(x = "enrichment distribution") + theme(axis.text.y=element_text(size=4))
+
+# View text results
+gse_t_vs_e_results <- as.data.frame(gse_t_vs_e)
+head((gse_t_vs_e_results[order(gse_t_vs_e_results$p.adjust),]), n=1)
+```
+
+
+KEGG Pathway Gene Set Enrichment Analysis
+
+Thin vs. Mature
+
+```{r}
+# Convert gene IDs for gseKEGG function
+# not all IDs will be converted
+ids<-bitr(names(t_vs_m_lfc), fromType = "GENENAME", toType = "ENTREZID", OrgDb=org.Sc.sgd.db)
+
+# remove duplicate IDS 
+dedup_ids = ids[!duplicated(ids[c("GENENAME")]),]
+
+# Create a new dataframe which has only the genes which were successfully mapped
+t_vs_m_kegg = t_vs_m[t_vs_m$X %in% dedup_ids$GENENAME,] # df=t_vs_m
+
+# Create a new column with the corresponding ENTREZ IDs
+t_vs_m_kegg$Y = dedup_ids$ENTREZID
+
+# Create a vector of the gene LFCs
+t_vs_m_kegg_list <- t_vs_m_kegg$log2FoldChange
+
+# Name vector with ENTREZ ids
+names(t_vs_m_kegg_list) <- t_vs_m_kegg$Y
+
+# omit NAs
+t_vs_m_kegg_list<-na.omit(t_vs_m_kegg_list)
+
+# sort the list in decreasing order for clusterProfiler
+t_vs_m_kegg_list <- sort(t_vs_m_kegg_list, decreasing = TRUE)
+
+# GSEA
+# yeast kegg code =  sce
+kegg_organism <- "sce"
+t_vs_m_kegg_gsea <- gseKEGG(geneList = t_vs_m_kegg_list,
+               organism = kegg_organism,
+               #nPerm        = 10000,
+               minGSSize = 2,
+               maxGSSize   = 1000,
+               pvalueCutoff = 0.05,
+               pAdjustMethod = "BH",
+               keyType = "ncbi-geneid")
+
+# Plot
+
+dotplot(t_vs_m_kegg_gsea, showCategory = 10, title = "Enriched Pathways" , split=".sign") + facet_grid(.~.sign)
+ridgeplot(t_vs_m_kegg_gsea) + labs(x = "enrichment distribution")+ theme(axis.text.y=element_text(size=4))
+
+# Extract text results
+t_vs_m_kegg_gsea_results <- as.data.frame(t_vs_m_kegg_gsea)
+head((t_vs_m_kegg_gsea_results[order(t_vs_m_kegg_gsea_results$p.adjust),]), n=1)
+```
+
+Mature vs. Early, same as above
+
+```{r}
+ids<-bitr(names(m_vs_e_lfc), fromType = "GENENAME", toType = "ENTREZID", OrgDb=org.Sc.sgd.db)
+dedup_ids <- ids[!duplicated(ids[c("GENENAME")]),]
+
+m_vs_e_kegg <- m_vs_e[m_vs_e$X %in% dedup_ids$GENENAME,] # df=m_vs_e
+
+m_vs_e_kegg$Y <- dedup_ids$ENTREZID
+
+m_vs_e_kegg_list <- m_vs_e_kegg$log2FoldChange
+
+names(m_vs_e_kegg_list) <- m_vs_e_kegg$Y
+
+m_vs_e_kegg_list<-na.omit(m_vs_e_kegg_list)
+
+m_vs_e_kegg_list <- sort(m_vs_e_kegg_list, decreasing = T)
+
+# GSEA
+
+m_vs_e_kegg_gsea <- gseKEGG(geneList = m_vs_e_kegg_list,
+               organism = kegg_organism,
+               #nPerm        = 10000,
+               minGSSize = 2,
+               maxGSSize = 1000,
+               pvalueCutoff = 0.05,
+               pAdjustMethod = "BH",
+               keyType       = "ncbi-geneid")
+
+# Plot
+
+dotplot(m_vs_e_kegg_gsea, showCategory = 10, title = "Enriched Pathways" , split=".sign") + facet_grid(.~.sign)
+ridgeplot(m_vs_e_kegg_gsea) + labs(x = "enrichment distribution")+ theme(axis.text.y=element_text(size=4))
+
+# Extract results
+m_vs_e_kegg_gsea_results <- as.data.frame(m_vs_e_kegg_gsea)
+head((m_vs_e_kegg_gsea_results[order(m_vs_e_kegg_gsea_results$p.adjust),]), n=1)
+```
+
+Thin vs. Early, see above for comments
+
+```{r}
+ids<-bitr(names(t_vs_e_lfc), fromType = "GENENAME", toType = "ENTREZID", OrgDb=org.Sc.sgd.db)
+
+dedup_ids <- ids[!duplicated(ids[c("GENENAME")]),]
+
+t_vs_e_kegg <- t_vs_e[t_vs_e$X %in% dedup_ids$GENENAME,] # df=t_vs_e
+
+t_vs_e_kegg$Y <- dedup_ids$ENTREZID
+
+t_vs_e_kegg_list <- t_vs_e_kegg$log2FoldChange
+
+names(t_vs_e_kegg_list) <- t_vs_e_kegg$Y
+ 
+t_vs_e_kegg_list<-na.omit(t_vs_e_kegg_list)
+
+t_vs_e_kegg_list <- sort(t_vs_e_kegg_list, decreasing = T)
+
+# GSEA
+t_vs_e_kegg_gsea <- gseKEGG(geneList = t_vs_e_kegg_list,
+               organism = kegg_organism,
+               #nPerm        = 10000,
+               minGSSize = 2,
+               maxGSSize = 1000,
+               pvalueCutoff = 0.05,
+               pAdjustMethod = "BH",
+               keyType  = "ncbi-geneid")
+
+# Plot
+
+dotplot(t_vs_e_kegg_gsea, showCategory = 10, title = "Enriched Pathways" , split=".sign") + facet_grid(.~.sign)
+ridgeplot(t_vs_e_kegg_gsea) + labs(x = "enrichment distribution")+ theme(axis.text.y=element_text(size=4))
+
+# Results
+t_vs_e_kegg_gsea_results <- as.data.frame(t_vs_e_kegg_gsea)
+head((t_vs_e_kegg_gsea_results[order(t_vs_e_kegg_gsea_results$p.adjust),]), n=1)
+```
+
+
