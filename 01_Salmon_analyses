@@ -6,6 +6,12 @@
 
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/146/045/GCF_000146045.2_R64/GCF_000146045.2_R64_rna.fna.gz
 
+# Checking read quality with fastQC
+
+for file in *.fastqc.gz; do
+fastqc $file; 
+done
+
 # Building index with salmon v1.10.3
 # -k 31 is the k-mer length recommended by the authors of the salmon vignette
 
