@@ -21,12 +21,12 @@ Mardanov et al. (2020) compared gene expression levels of _S. cerevisiae_ at thr
 
 ## Methods
 
-I downloaded the raw RNA-seq reads from NCBI SRA (accessions:SRR10551657-SRR10551665; Mardanov et al., 2020). I used FastQC (v) to visualise read quality (Andrews, 2010). I used Salmon v1.10.3 to build an index for the reference transcriptome and quantify the transcript counts for each sample (Patro et al., 2017). I specified -k 31 for building the index, as this builds the index over k-mers of length 31, which Patro et al. (2017) found works well for reads that are 75bp or longer. However, I later realised the reads are only 50 base pairs long, and I did not have time before the submission deadline to go back and change this parameter- this is a limitation of the results and in future work, I would reduce the -k flag to reflect the shorter read length, as per the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html). For quantifying the transcript counts, I used four threads and the -gcBias flag as recommended by Love, Anders, and Huber in the DEseq2 vignette (2025). This flag estimates a correction factor for common biases in RNA-seq data (Love, Hogenesch, and Irizarry, 2016; Patro et al., 2017). 
+I downloaded the raw RNA-seq reads from NCBI SRA (accessions:SRR10551657-SRR10551665; Mardanov et al., 2020). I used FastQC v0.12.1 to visualise read quality (Andrews, 2010). I used Salmon v1.10.3 to build an index for the reference transcriptome and quantify the transcript counts for each sample (Patro et al., 2017). I specified -k 31 for building the index, as this builds the index over k-mers of length 31, which Patro et al. (2017) found works well for reads that are 75bp or longer. However, I later realised the reads are only 50 base pairs long, and I did not have time before the submission deadline to go back and change this parameter- this is a limitation of the results and in future work, I would reduce the -k flag to reflect the shorter read length, as per the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html). For quantifying the transcript counts, I used four threads and the -gcBias flag as recommended by Love, Anders, and Huber in the DEseq2 vignette (2025). This flag estimates a correction factor for common biases in RNA-seq data (Love, Hogenesch, and Irizarry, 2016; Patro et al., 2017). Both FastQC and Salmon were installed in conda environments and analyses run on a virtual machine running Ubuntu 25.10 with 8 cores and 12 GB of RAM. Code used for these analyses can be found [here.](./01_Salmon_analyses).
 
 I used the _S. cerevisiae_ strain S288C transcriptome (GCF_000146045.2) as the reference for building the index, not _S. cerevisiae_ strain I-329 (GenBank PTER00000000) as Mardanov et al. (2020) used. This is due to the fact that I was having trouble matching the transcript annotations when analysing differential gene expression with DEseq2, so I had to use a different reference transcriptome. 
 For analysing the differential gene expression between different stages of velum, I used DEseq2 (Love, Hubers, & Anders, 2014). I imported the count data with the tximport v1.34.0 (Soneson, Love, & Robinson, 2016). To assign gene IDs to the transcripts, I used the R packages txdbmaker v1.2.1 (Pagès et al., 2025) and AnnotationDbi v1.68.0 (Pagès et al., 2025b) to make a database of yeast gene IDs from the reference genome .gff file. I performed differential gene expression analysis following the DEseq2 vignette by Love, Hubers, and Anders (2025). I prefiltered for genes with low counts as recommended, and computed results for each contrast between stages of velum formation (i.e. Mature vs. Thin, Mature vs. Early, Thin vs. Early). I performed log-fold shrinkage for ease of visualisation and plotted the significantly differentially expressed genes for each contrast. I also applied the variance stabilising transformation as per Anders and Huber (2010), with the blind parameter set to True, as experimental design is not expected to influence the counts. I plotted heatmaps of the counts, performed a PCA, and assessed dispersion of the counts. 
 
-I then performed a GO term and KEGG pathway gene set enrichment analysis using the packages clusterProfiler v4.14.6 (Yu et al., 2012), DOSE v4.0.1 (Yu et al., 2015) and enrichplot v1.26.6 (Yu, 2025). I used the _S. cerevisiae_ genome annotation package to provide the GO and KEGG annotations (Carlson, 2024). I ran the GSEA with the following parameters: search all GO/KEGG categories, gene name as the key type, minimum genes in set =2, maximum genes in set=1000, p-value cutoff-0.05, database as yeast reference genome database, and the Benjamini-Hochberg correction for multiple testing. 
+I then performed a GO term and KEGG pathway gene set enrichment analysis using the packages clusterProfiler v4.14.6 (Yu et al., 2012), DOSE v4.0.1 (Yu et al., 2015) and enrichplot v1.26.6 (Yu, 2025). I used the _S. cerevisiae_ genome annotation package to provide the GO and KEGG annotations (Carlson, 2024). I ran the GSEA with the following parameters: search all GO/KEGG categories, gene name as the key type, minimum genes in set =2, maximum genes in set=1000, p-value cutoff-0.05, database as yeast reference genome database, and the Benjamini-Hochberg correction for multiple testing. Both the diffrenetial expression analyses and gene set enrichment were run in RStudio v4.4.2 (RStudio team, 2025). All code for these analyses is [here.](./R/02_DE_and_GSEA.Rmd)
 
 ## Results
 
@@ -112,8 +112,6 @@ Anders, S., & Huber, W. (2010). Differential expression analysis for sequence co
 
 Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online]. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 
-Bharucha, J. P., Larson, J. R., Konopka, J. B., & Tatchell, K. (2008). Saccharomyces cerevisiae afr1 protein is a protein phosphatase 1/glc7-targeting subunit that regulates the septin cytoskeleton during mating. Eukaryotic Cell, 7(8), 1246–1255. https://doi.org/10.1128/EC.00024-08
-
 Bray, N. L., Pimentel, H., Melsted, P., & Pachter, L. (2016). Near-optimal probabilistic RNA-seq quantification. Nature Biotechnology, 34(5), 525–527. https://doi.org/10.1038/nbt.3519
 
 Carlson, M. (2024). _org.Sc.sgd.db: Genome wide annotation for Yeast_. R package version 3.20.0.
@@ -140,17 +138,21 @@ Love, M. I., Hogenesch, J. B., & Irizarry, R. A. (2016). Modeling of RNA-seq fra
 
 Love, M. I., Huber, W., & Anders, S. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15(12), 550. https://doi.org/10.1186/s13059-014-0550-8
 
+Mardanov, A. V., Eldarov, M. A., Beletsky, A. V., Tanashchuk, T. N., Kishkovskaya, S. A., & Ravin, N. V. (2020). Transcriptome profile of yeast strain used for biological wine aging revealed dynamic changes of gene expression in course of flor development. Frontiers in Microbiology, 11. https://doi.org/10.3389/fmicb.2020.00538
+
 Mardanov, A. V., Gruzdev, E. V., Beletsky, A. V., Ivanova, E. V., Shalamitskiy, M. Yu., Tanashchuk, T. N., & Ravin, N. V. (2023). Microbial communities of flor velums and the genetic stability of flor yeasts used for a long time for the industrial production of sherry-like wines. Fermentation, 9(4), 367. https://doi.org/10.3390/fermentation9040367
 
 Maršíková, J., Wilkinson, D., Hlaváček, O., Gilfillan, G. D., Mizeranschi, A., Hughes, T., Begany, M., Rešetárová, S., Váchová, L., & Palková, Z. (2017). Metabolic differentiation of surface and invasive cells of yeast colony biofilms revealed by gene expression profiling. BMC Genomics, 18(1), 814. https://doi.org/10.1186/s12864-017-4214-4
 
-Pagès H, Carlson M, Aboyoun P, Falcon S, Morgan M (2025). txdbmaker: Tools for making TxDb objects from genomic annotations. doi:10.18129/B9.bioc.txdbmaker, R package version 1.6.2, https://bioconductor.org/packages/txdbmaker.
+Pagès, H., Carlson, M., Aboyoun, P., Falcon, S., Morgan, M. (2025a). txdbmaker: Tools for making TxDb objects from genomic annotations. doi:10.18129/B9.bioc.txdbmaker, R package version 1.6.2, https://bioconductor.org/packages/txdbmaker.
 
-Pagès H, Carlson M, Falcon S, Li N (2025). AnnotationDbi: Manipulation of SQLite-based annotations in Bioconductor. doi:10.18129/B9.bioc.AnnotationDbi, R package version 1.72.0, https://bioconductor.org/packages/AnnotationDbi.
+Pagès, H., Carlson, M., Falcon, S., Li, N. (2025b). AnnotationDbi: Manipulation of SQLite-based annotations in Bioconductor. doi:10.18129/B9.bioc.AnnotationDbi, R package version 1.72.0, https://bioconductor.org/packages/AnnotationDbi.
 
-Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017a). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods, 14(4), 417–419. https://doi.org/10.1038/nmeth.4197
+Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods, 14(4), 417–419. https://doi.org/10.1038/nmeth.4197
 
 Patro, R., Mount, S. M., & Kingsford, C. (2014). Sailfish enables alignment-free isoform quantification from RNA-seq reads using lightweight algorithms. Nature Biotechnology, 32(5), 462–464. https://doi.org/10.1038/nbt.2862
+
+Posit team (2025). RStudio: Integrated Development Environment for R. Posit Software, PBC, Boston, MA. http://www.posit.co/.
 
 Rapaport, F., Khanin, R., Liang, Y., Pirun, M., Krek, A., Zumbo, P., Mason, C. E., Socci, N. D., & Betel, D. (2013). Comprehensive evaluation of differential gene expression analysis methods for RNA-seq data. Genome Biology, 14(9), 3158. https://doi.org/10.1186/gb-2013-14-9-r95
 
@@ -170,10 +172,10 @@ Taylor, A., Macaulay, V. M., Miossec, M. J., Maurya, A. K., & Buffa, F. M. (2025
 
 Wu, T., Hu, E., Xu, S., Chen, M., Guo, P., Dai, Z., Feng, T., Zhou, L., Tang, W., Zhan, L., Fu, X., Liu, S., Bo, X., & Yu, G. (2021). Clusterprofiler 4. 0: A universal enrichment tool for interpreting omics data. The Innovation, 2(3), 100141. https://doi.org/10.1016/j.xinn.2021.100141
 
-Xu, S., Hu, E., Cai, Y., Xie, Z., Luo, X., Zhan, L., Tang, W., Wang, Q., Liu, B., Wang, R., Xie, W., Wu, T., Xie, L., & Yu, G. (2024). Using clusterProfiler to characterize multiomics data. Nature Protocols, 19(11), 3292–3320. https://doi.org/10.1038/s41596-024-01020-z
-
 Yu, G., Wang, L.-G., Han, Y., & He, Q.-Y. (2012). Clusterprofiler: An r package for comparing biological themes among gene clusters. OMICS : A Journal of Integrative Biology, 16(5), 284–287. https://doi.org/10.1089/omi.2011.0118
 
 Yu, G., Wang, L.-G., Yan, G.-R., & He, Q.-Y. (2015). DOSE: An R/Bioconductor package for disease ontology semantic and enrichment analysis. Bioinformatics, 31(4), 608–609. https://doi.org/10.1093/bioinformatics/btu684
-Yu, G.  (2018). Enrichplot [Computer software]. Bioconductor. https://doi.org/10.18129/B9.BIOC.ENRICHPLOT
+
+Yu, G. (2025). Enrichplot [Computer software]. Bioconductor. https://doi.org/10.18129/B9.BIOC.ENRICHPLOT
+
 Zara, G., Zara, S., Pinna, C., Marceddu, S., & Budroni, M. (2009). FLO11 gene length and transcriptional level affect biofilm-forming ability of wild flor strains of Saccharomyces cerevisiae. Microbiology, 155(12), 3838–3846. https://doi.org/10.1099/mic.0.028738-0
