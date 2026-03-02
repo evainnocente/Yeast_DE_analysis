@@ -145,15 +145,19 @@ thin_vs_early_shrink[order(thin_vs_early_shrink$padj),]
 summary(thin_vs_early_shrink) # 1346 LFC >0, 1269 LFC <0
 sum(thin_vs_early_shrink$padj < 0.05, na.rm=TRUE) # 2273 signif DE
 
-# Filteirng results objects to retain significant results only, then summarising how many genes were up or downregulated
+# Filteirng results objects to retain significant results only, then summarising how many genes were up or downregulated, writing significant results
 sig_t_vs_m <- thin_vs_mature_shrink[which(thin_vs_mature_shrink$padj < 0.05), ]
 summary(sig_t_vs_m) # 1177 up, 1248 down
+sig_t_vs_m[order(sig_t_vs_m$padj),]
 
 sig_m_vs_e <- mature_vs_early_shrink[which(mature_vs_early_shrink$padj < 0.05), ]
 summary(sig_m_vs_e) # 1561 up, 1463 down
+sig_m_vs_e[order(sig_m_vs_e$padj),]
+
 
 sig_t_vs_e <-thin_vs_early_shrink[which(thin_vs_early_shrink$padj < 0.05), ]
 summary(sig_t_vs_e) # 1158 up, 1115 down
+sig_t_vs_e[order(sig_t_vs_e$padj),]
 ```
 
 Quick MA plots to visualise results. The default alpha cutoff value is 0.1 (the blue points). Triangles have a LFC too large for the plot.
@@ -299,8 +303,10 @@ dotplot(gse_t_vs_m, showCategory=10, split=".sign") + facet_grid(.~.sign)+ theme
 # Ridge plot
 ridgeplot(gse_t_vs_m) + labs(x = "enrichment distribution") + theme(axis.text.y=element_text(size=4))
 
-# Results
+# Writing results
 gse_t_vs_m_results <- as.data.frame(gse_t_vs_m)
+
+write.csv(gse_t_vs_m_results, "../data/gsea_results/gse_t_vs_m_results.csv")
 
 # Order by adjusted p value and extract top value
 head((gse_t_vs_m_results[order(gse_t_vs_m_results$p.adjust),]), n=1)
@@ -341,6 +347,7 @@ ridgeplot(gse_m_vs_e) + labs(x = "enrichment distribution") + theme(axis.text.y=
 
 # Results
 gse_m_vs_e_results <- as.data.frame(gse_m_vs_e)
+write.csv(gse_m_vs_e_results, "../data/gsea_results/gse_m_vs_e_results.csv")
 
 # Order by adjusted p value and extract top value
 head((gse_m_vs_e_results[order(gse_m_vs_e_results$p.adjust),]), n=1)
@@ -381,6 +388,8 @@ ridgeplot(gse_t_vs_e) + labs(x = "enrichment distribution") + theme(axis.text.y=
 
 # View text results
 gse_t_vs_e_results <- as.data.frame(gse_t_vs_e)
+write.csv(gse_t_vs_e_results, "../data/gsea_results/gse_t_vs_e_results.csv")
+
 head((gse_t_vs_e_results[order(gse_t_vs_e_results$p.adjust),]), n=1)
 ```
 
@@ -434,6 +443,8 @@ ridgeplot(t_vs_m_kegg_gsea) + labs(x = "enrichment distribution")+ theme(axis.te
 
 # Extract text results
 t_vs_m_kegg_gsea_results <- as.data.frame(t_vs_m_kegg_gsea)
+write.csv(t_vs_m_kegg_gsea_results, "../data/gsea_results/t_vs_m_kegg_gsea_results.csv")
+
 head((t_vs_m_kegg_gsea_results[order(t_vs_m_kegg_gsea_results$p.adjust),]), n=1)
 ```
 
@@ -473,6 +484,8 @@ ridgeplot(m_vs_e_kegg_gsea) + labs(x = "enrichment distribution")+ theme(axis.te
 
 # Extract results
 m_vs_e_kegg_gsea_results <- as.data.frame(m_vs_e_kegg_gsea)
+write.csv(m_vs_e_kegg_gsea_results, "../data/gsea_results/m_vs_e_kegg_gsea_results.csv")
+
 head((m_vs_e_kegg_gsea_results[order(m_vs_e_kegg_gsea_results$p.adjust),]), n=1)
 ```
 
@@ -512,6 +525,8 @@ ridgeplot(t_vs_e_kegg_gsea) + labs(x = "enrichment distribution")+ theme(axis.te
 
 # Results
 t_vs_e_kegg_gsea_results <- as.data.frame(t_vs_e_kegg_gsea)
+write.csv(t_vs_e_kegg_gsea_results, "../data/gsea_results/t_vs_e_kegg_gsea_results.csv")
+
 head((t_vs_e_kegg_gsea_results[order(t_vs_e_kegg_gsea_results$p.adjust),]), n=1)
 ```
 
