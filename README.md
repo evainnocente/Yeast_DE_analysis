@@ -21,7 +21,7 @@ Mardanov et al. (2020) compared gene expression levels of _S. cerevisiae_ at thr
 
 ## Methods
 
-I downloaded the raw RNA-seq reads from NCBI SRA (accessions:SRR10551657-SRR10551665; Mardanov et al., 2020). I used FastQC (v) to visualise read quality (Andrews, 2010). I used Salmon v1.10.3 to build an index for the reference transcriptome and quantify the transcript counts for each sample (Patro et al., 2017). I specified -k 31 for building the index, as this builds the index over k-mers of length 31, which Patro et al. (2017) found works well for reads that are 75bp or longer. However, I later realised the reads are only 50 base pairs long, and I did not have time before the submission deadline to go back and change this parameter- this is a limitation of the results and in future work, I would reduce the -k flag to reflect the shorter read length, as per the Salmon documentation (https://salmon.readthedocs.io/en/latest/salmon.html). For quantifying the transcript counts, I used four threads and the -gcBias flag as recommended by Love, Anders, and Huber in the DEseq2 vignette (2025). This flag estimates a correction factor for common biases in RNA-seq data (Love, Hogenesch, and Irizarry, 2016; Patro et al., 2017). 
+I downloaded the raw RNA-seq reads from NCBI SRA (accessions:SRR10551657-SRR10551665; Mardanov et al., 2020). I used FastQC (v) to visualise read quality (Andrews, 2010). I used Salmon v1.10.3 to build an index for the reference transcriptome and quantify the transcript counts for each sample (Patro et al., 2017). I specified -k 31 for building the index, as this builds the index over k-mers of length 31, which Patro et al. (2017) found works well for reads that are 75bp or longer. However, I later realised the reads are only 50 base pairs long, and I did not have time before the submission deadline to go back and change this parameter- this is a limitation of the results and in future work, I would reduce the -k flag to reflect the shorter read length, as per the [Salmon documentation](https://salmon.readthedocs.io/en/latest/salmon.html). For quantifying the transcript counts, I used four threads and the -gcBias flag as recommended by Love, Anders, and Huber in the DEseq2 vignette (2025). This flag estimates a correction factor for common biases in RNA-seq data (Love, Hogenesch, and Irizarry, 2016; Patro et al., 2017). 
 
 I used the _S. cerevisiae_ strain S288C transcriptome (GCF_000146045.2) as the reference for building the index, not _S. cerevisiae_ strain I-329 (GenBank PTER00000000) as Mardanov et al. (2020) used. This is due to the fact that I was having trouble matching the transcript annotations when analysing differential gene expression with DEseq2, so I had to use a different reference transcriptome. 
 For analysing the differential gene expression between different stages of velum, I used DEseq2 (Love, Hubers, & Anders, 2014). I imported the count data with the tximport v1.34.0 (Soneson, Love, & Robinson, 2016). To assign gene IDs to the transcripts, I used the R packages txdbmaker v1.2.1 (Pagès et al., 2025) and AnnotationDbi v1.68.0 (Pagès et al., 2025b) to make a database of yeast gene IDs from the reference genome .gff file. I performed differential gene expression analysis following the DEseq2 vignette by Love, Hubers, and Anders (2025). I prefiltered for genes with low counts as recommended, and computed results for each contrast between stages of velum formation (i.e. Mature vs. Thin, Mature vs. Early, Thin vs. Early). I performed log-fold shrinkage for ease of visualisation and plotted the significantly differentially expressed genes for each contrast. I also applied the variance stabilising transformation as per Anders and Huber (2010), with the blind parameter set to True, as experimental design is not expected to influence the counts. I plotted heatmaps of the counts, performed a PCA, and assessed dispersion of the counts. 
@@ -32,19 +32,19 @@ I then performed a GO term and KEGG pathway gene set enrichment analysis using t
 
 Overall sequence was quality was good according to FastQC. There were elevated levels of overrepresented sequences, but I did not trim these as recommended for differential gene expression analysis (Liao & Shi, 2020). Mapping rate to the salmon index ranged from 74.22-92.28% for the nine samples. 
 
-When comparing the thin vs. mature stages, 1177 genes had a significant positive log-fold change and 1248 genes had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 1). The top five most significantly differentially expressed genes were TKL2, AFR1, YPR127W, DSF1, and ADI1 (all with a negative log-fold change). 
+When comparing the thin vs. mature stages, 1177 genes had a significant positive log-fold change and 1248 genes had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 1). The top five most significantly differentially expressed genes were TKL2, AFR1, YPR127W, DSF1, and ADI1 (all with a negative log-fold change). All significantly expressed genes for this comparison can be found in [Supplemental Data 1.](./data/results/thin_vs_mature_shrink_results.csv)
 
 <img width="875" height="540" alt="fig1" src="https://github.com/user-attachments/assets/b698923f-5cb4-4d35-956a-926925ee9be6" />
 
 Figure 1. Volcano plot showing the differentially expressed genes between the thin and mature stages, where significant genes with a negative log-fold change are blue and significant genes with a positive log-fold change are red. 
 
-When comparing the mature vs. early stages, 1561 genes had a significant positive log-fold change, and 1463 had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 2). The top five most significantly differentially expressed genes were TDH1 (negative log-fold change), FLO11 (positive), OLE1 (negative), PDC6 (negative), and HXT1 (negative). 
+When comparing the mature vs. early stages, 1561 genes had a significant positive log-fold change, and 1463 had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 2). The top five most significantly differentially expressed genes were TDH1 (negative log-fold change), FLO11 (positive), OLE1 (negative), PDC6 (negative), and HXT1 (negative). All significantly expressed genes for this comparison can be found in [Supplemental Data 2.](./data/results/mature_vs_early_shrink_results.csv)
 
 <img width="875" height="540" alt="fig2" src="https://github.com/user-attachments/assets/f91d5172-7e9b-4db1-9bac-ff5408ace39c" />
 
 Figure 2. Volcano plot showing the differentially expressed genes between the mature and early stages, where significant genes with a negative log-fold change are blue and significant genes with a positive log-fold change are red. 
 
-When comparing the thin vs. early stages, 1158 genes had a significant positive log-fold change, and 1115 had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 3). The top five most significantly differentially expressed genes were PDC6 (negative), ADH7 (positive), HXT1 (negative), PCK1 (positive), and CTT1 (negative). 
+When comparing the thin vs. early stages, 1158 genes had a significant positive log-fold change, and 1115 had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 3). The top five most significantly differentially expressed genes were PDC6 (negative), ADH7 (positive), HXT1 (negative), PCK1 (positive), and CTT1 (negative). All significantly expressed genes for this comparison can be found in [Supplemental Data 3.](./data/results/thin_vs_early_shrink_results.csv)
 
 <img width="875" height="540" alt="fig3" src="https://github.com/user-attachments/assets/6b66bafe-2371-4b57-8c2f-d7e1834e9fc7" />
 
@@ -60,7 +60,7 @@ Figure 4. PCA plot of the variance-stabilised transformed data, coloured by stag
 
 Figure 5. Heatmap of the top 20 most highly expressed genes across samples and stages of velum formation, where warmer colours indicate upregulation and cooler colours indicate downregulation.
 
-Gene set enrichment analysis based on GO terms indicated that for thin vs. mature stages, the GO term for the gene set with the lowest adjusted p-value was “energy reserve metabolic process”, containing 35 genes. For KEGG pathways, the pathway with the lowest adjusted p-value was “metabolic pathways” with 753 genes. There were 79 significantly enriched GO terms and 13 KEGG pathways (Fig. 6 and Fig. 7, respectively). 
+Gene set enrichment analysis based on GO terms indicated that for thin vs. mature stages, the GO term for the gene set with the lowest adjusted p-value was “energy reserve metabolic process”, containing 35 genes. For KEGG pathways, the pathway with the lowest adjusted p-value was “metabolic pathways” with 753 genes. There were 79 significantly enriched GO terms ([Supplemental Data 5,](./data/gsea_results/gse_t_vs_m_results.csv) Fig. 6) and 13 KEGG pathways ([Supplemental Data 6,](./data/gsea_results/t_vs_m_kegg_gsea_results.csv) Fig. 7). 
 
 <img width="875" height="540" alt="fig6" src="https://github.com/user-attachments/assets/61ab2412-c5c1-409c-b050-f7dbecef3696" />
 
@@ -70,7 +70,7 @@ Figure 6. Ridgeplot showing the distribution of log-fold changes of the most enr
 
 Figure 7. Ridgeplot showing the distribution of log-fold changes of the most enriched KEGG pathways between thin and mature stages, where warmer colours indicate lower adjusted p-values, and cooler colours indicate higher p-values. 
 
-For mature vs. early stages, the GO term with the lowest adjusted p-value was “structural constituent of ribosome” with 223 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 227 significantly enriched GO terms and 20 KEGG pathways (Fig. 8 and Fig. 9, respectively). 
+For mature vs. early stages, the GO term with the lowest adjusted p-value was “structural constituent of ribosome” with 223 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 227 significantly enriched GO terms ([Supplemental Data 7,](./data/gsea_results/gse_m_vs_e_results.csv) Fig. 8) and 20 KEGG pathways ([Supplemental Data 8,](./data/gsea_results/m_vs_e_kegg_gsea_results.csv) Fig. 9). 
 
 <img width="875" height="540" alt="fig8" src="https://github.com/user-attachments/assets/a9f90c32-4f88-4f1a-81c3-0fb111937ce3" />
 
@@ -80,7 +80,7 @@ Figure 8. Ridgeplot showing the distribution of log-fold changes of the most enr
 
 Figure 9. Ridgeplot showing the distribution of log-fold changes of the most enriched KEGG pathways between mature and early stages, where warmer colours indicate lower adjusted p-values, and cooler colours indicate higher p-values. 
 
-Finally, for thin vs. early stages, the GO term with the lowest adjusted p-value was “organellar ribosome” with 86 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 238 significantly enriched GO terms and 18 KEGG pathways (Fig. 10 and Fig. 11, respectively).
+Finally, for thin vs. early stages, the GO term with the lowest adjusted p-value was “organellar ribosome” with 86 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 238 significantly enriched GO terms ([Supplemental Data 9,](./data/gsea_results/gse_t_vs_e_results.csv) Fig.10) and 18 KEGG pathways ([Supplemental Data 10,](./data/gsea_results/t_vs_e_kegg_gsea_results.csv) Fig. 11). 
 
 <img width="875" height="540" alt="fig10" src="https://github.com/user-attachments/assets/7507b5f2-9ba8-4e16-9d8d-1bb7ccc64a5a" />
 
