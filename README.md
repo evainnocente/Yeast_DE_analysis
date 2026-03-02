@@ -34,19 +34,61 @@ Overall sequence was quality was good according to FastQC. There were elevated l
 
 When comparing the thin vs. mature stages, 1177 genes had a significant positive log-fold change and 1248 genes had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 1). The top five most significantly differentially expressed genes were TKL2, AFR1, YPR127W, DSF1, and ADI1 (all with a negative log-fold change). 
 
+<img width="875" height="540" alt="fig1" src="https://github.com/user-attachments/assets/b698923f-5cb4-4d35-956a-926925ee9be6" />
+
+Figure 1. Volcano plot showing the differentially expressed genes between the thin and mature stages, where significant genes with a negative log-fold change are blue and significant genes with a positive log-fold change are red. 
+
 When comparing the mature vs. early stages, 1561 genes had a significant positive log-fold change, and 1463 had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 2). The top five most significantly differentially expressed genes were TDH1 (negative log-fold change), FLO11 (positive), OLE1 (negative), PDC6 (negative), and HXT1 (negative). 
+
+<img width="875" height="540" alt="fig2" src="https://github.com/user-attachments/assets/f91d5172-7e9b-4db1-9bac-ff5408ace39c" />
+
+Figure 2. Volcano plot showing the differentially expressed genes between the mature and early stages, where significant genes with a negative log-fold change are blue and significant genes with a positive log-fold change are red. 
 
 When comparing the thin vs. early stages, 1158 genes had a significant positive log-fold change, and 1115 had a significant negative log-fold change (adjusted p-value < 0.05) (Fig. 3). The top five most significantly differentially expressed genes were PDC6 (negative), ADH7 (positive), HXT1 (negative), PCK1 (positive), and CTT1 (negative). 
 
-Plotting a PCA of the variance-stabilised transformed data (Fig. 4) revealed that the data clustered well by stage. Expression of the top 20 most highly expressed genes across samples and stages can be seen in Figure 5. To highlight one notable gene, EGO4 was downregulated in the Early stage compared to the other 2.
+<img width="875" height="540" alt="fig3" src="https://github.com/user-attachments/assets/6b66bafe-2371-4b57-8c2f-d7e1834e9fc7" />
 
-Gene set enrichment analysis based on GO terms indicated that for thin vs. mature stages, the GO term for the gene set with the lowest adjusted p-value was “energy reserve metabolic process”, containing 35 genes. For KEGG pathways, the pathway with the lowest adjusted p-value was “metabolic pathways” with 753 genes. There were 79 significantly enriched GO terms and 13 KEGG pathways. 
+Figure 3. Volcano plot showing the differentially expressed genes between the thin and early stages, where significant genes with a negative log-fold change are blue and significant genes with a positive log-fold change are red. 
 
-For mature vs. early stages, the GO term with the lowest adjusted p-value was “structural constituent of ribosome” with 223 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 227 significantly enriched GO terms and 20 KEGG pathways. 
+Plotting a PCA of the variance-stabilised transformed data (Fig. 4) revealed that the data clustered well by stage. Expression of the top 20 most highly expressed genes across samples and stages can be seen in Figure 5. To highlight one notable gene, EGO4 was downregulated in the early stage compared to the other stages.
 
-Finally, for thin vs. early stages, the GO term with the lowest adjusted p-value was “organellar ribosome” with 86 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 238 significantly enriched GO terms and 18 KEGG pathways.
+<img width="875" height="540" alt="fig4" src="https://github.com/user-attachments/assets/9ad4ea74-5135-4b6c-a903-858a422dba96" />
 
+Figure 4. PCA plot of the variance-stabilised transformed data, coloured by stage.
 
+<img width="875" height="540" alt="fig5" src="https://github.com/user-attachments/assets/d5ea39ea-730f-4a60-822a-61ce193dfda3" />
+
+Figure 5. Heatmap of the top 20 most highly expressed genes across samples and stages of velum formation, where warmer colours indicate upregulation and cooler colours indicate downregulation.
+
+Gene set enrichment analysis based on GO terms indicated that for thin vs. mature stages, the GO term for the gene set with the lowest adjusted p-value was “energy reserve metabolic process”, containing 35 genes. For KEGG pathways, the pathway with the lowest adjusted p-value was “metabolic pathways” with 753 genes. There were 79 significantly enriched GO terms and 13 KEGG pathways (Fig. 6 and Fig. 7, respectively). 
+
+<img width="875" height="540" alt="fig6" src="https://github.com/user-attachments/assets/61ab2412-c5c1-409c-b050-f7dbecef3696" />
+
+Figure 6. Ridgeplot showing the distribution of log-fold changes of the most enriched GO terms between thin and mature stages, where warmer colours indicate adjusted lower p-values, and cooler colours indicate higher p-values. 
+
+<img width="875" height="540" alt="fig7" src="https://github.com/user-attachments/assets/6d32a93f-83ae-40cd-928a-c52367cbef06" />
+
+Figure 7. Ridgeplot showing the distribution of log-fold changes of the most enriched KEGG pathways between thin and mature stages, where warmer colours indicate lower adjusted p-values, and cooler colours indicate higher p-values. 
+
+For mature vs. early stages, the GO term with the lowest adjusted p-value was “structural constituent of ribosome” with 223 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 227 significantly enriched GO terms and 20 KEGG pathways (Fig. 8 and Fig. 9, respectively). 
+
+<img width="875" height="540" alt="fig8" src="https://github.com/user-attachments/assets/a9f90c32-4f88-4f1a-81c3-0fb111937ce3" />
+
+Figure 8. Ridgeplot showing the distribution of log-fold changes of the most enriched GO terms between mature and early stages, where warmer colours indicate adjusted lower p-values, and cooler colours indicate higher p-values. 
+
+<img width="875" height="540" alt="fig9" src="https://github.com/user-attachments/assets/f1edc8ca-dcd9-45b3-840a-a01de7de1a7e" />
+
+Figure 9. Ridgeplot showing the distribution of log-fold changes of the most enriched KEGG pathways between mature and early stages, where warmer colours indicate lower adjusted p-values, and cooler colours indicate higher p-values. 
+
+Finally, for thin vs. early stages, the GO term with the lowest adjusted p-value was “organellar ribosome” with 86 genes. The KEGG pathway with the lowest adjusted p-value was “ribosome” with 204 genes. There were 238 significantly enriched GO terms and 18 KEGG pathways (Fig. 10 and Fig. 11, respectively).
+
+<img width="875" height="540" alt="fig10" src="https://github.com/user-attachments/assets/7507b5f2-9ba8-4e16-9d8d-1bb7ccc64a5a" />
+
+Figure 10. Ridgeplot showing the distribution of log-fold changes of the most enriched GO terms between thin and early stages, where warmer colours indicate adjusted lower p-values, and cooler colours indicate higher p-values. 
+
+<img width="875" height="540" alt="fig11" src="https://github.com/user-attachments/assets/2ed1b448-32f2-41a5-9357-c0097996500f" />
+
+Figure 11. Ridgeplot showing the distribution of log-fold changes of the most enriched KEGG pathways between thin and early stages, where warmer colours indicate lower adjusted p-values, and cooler colours indicate higher p-values. 
 
 ## Discussion
 
